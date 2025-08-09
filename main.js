@@ -174,51 +174,83 @@ function renderGameList() {
 async function launchGame(gameMeta) {
   const listSection = document.getElementById('game-list');
   const gameContainer = document.getElementById('game-container');
-  // Clear previous game if any
+  let resizeHandler = null;
+
+  // Clear previous game if any. The cleanup function is now responsible for
+  // removing the resize listener.
   if (currentGameCleanup) {
     currentGameCleanup();
     currentGameCleanup = null;
   }
+
   listSection.style.display = 'none';
   gameContainer.innerHTML = '';
   gameContainer.style.display = 'flex';
-  const canvas = document.createElement('canvas');
-  canvas.width = gameContainer.clientWidth;
-  canvas.height = gameContainer.clientHeight;
-  canvas.className = 'game-canvas';
-  gameContainer.appendChild(canvas);
-  // Provide exit/back button
-  const backBtn = document.createElement('button');
-  backBtn.className = 'btn-icon back-btn';
-  backBtn.innerHTML = `<i class='bx bx-arrow-back'></i>`;
-  backBtn.setAttribute('aria-label', t('ui.back'));
-  backBtn.addEventListener('click', () => {
-    if (currentGameCleanup) currentGameCleanup();
-    gameContainer.style.display = 'none';
-    listSection.style.display = 'grid';
-    currentGameCleanup = null;
-  });
-  gameContainer.appendChild(backBtn);
-  // Resize canvas on window resize
-  const resizeCanvas = () => {
+
+  // Defer canvas creation and game init to the next frame to ensure proper layout
+  requestAnimationFrame(async () => {
+    // In case the user navigates away before the frame renders
+    if (gameContainer.style.display !== 'flex') return;
+
+    const canvas = document.createElement('canvas');
     canvas.width = gameContainer.clientWidth;
     canvas.height = gameContainer.clientHeight;
-    if (typeof currentGameCleanup?.resize === 'function') {
-      currentGameCleanup.resize(canvas.width, canvas.height);
+    canvas.className = 'game-canvas';
+    gameContainer.appendChild(canvas);
+
+    // Provide exit/back button
+    const backBtn = document.createElement('button');
+    backBtn.className = 'btn-icon back-btn';
+    backBtn.innerHTML = `<i class='bx bx-arrow-back'></i>`;
+    backBtn.setAttribute('aria-label', t('ui.back'));
+    backBtn.addEventListener('click', () => {
+      if (currentGameCleanup) {
+        currentGameCleanup();
+        currentGameCleanup = null;
+      }
+      gameContainer.style.display = 'none';
+      listSection.style.display = 'grid';
+    });
+    gameContainer.appendChild(backBtn);
+
+    // Resize canvas on window resize
+    resizeHandler = () => {
+      canvas.width = gameContainer.clientWidth;
+      canvas.height = gameContainer.clientHeight;
+      // The original code to call a game's resize function was broken, as
+      // the function was never exposed. The canvas itself is resized, which
+      // is the most critical part. A larger refactor would be needed to
+      // properly call game-specific resize handlers.
+    };
+    window.addEventListener('resize', resizeHandler);
+
+    // Dynamically import game module
+    try {
+      const mod = modulesMap[gameMeta.id];
+      if (!mod || typeof mod.init !== 'function') throw new Error('Game module missing init');
+      const gameCleanupFunc = await mod.init({ canvas, sdk, audioManager, exit: () => backBtn.click() });
+
+      // Create a new cleanup function that wraps the game's own cleanup
+      // and also removes the window resize listener to prevent memory leaks.
+      currentGameCleanup = () => {
+        if (gameCleanupFunc) {
+          gameCleanupFunc();
+        }
+        if (resizeHandler) {
+          window.removeEventListener('resize', resizeHandler);
+        }
+      };
+    } catch (e) {
+      console.error('Failed to load game', gameMeta.id, e);
+      const p = document.createElement('p');
+      p.textContent = `Erro ao carregar o jogo ${gameMeta.id}.`;
+      gameContainer.appendChild(p);
+      // Ensure listener is removed on error as well
+      if (resizeHandler) {
+        window.removeEventListener('resize', resizeHandler);
+      }
     }
-  };
-  window.addEventListener('resize', resizeCanvas);
-  // Dynamically import game module
-  try {
-    const mod = modulesMap[gameMeta.id];
-    if (!mod || typeof mod.init !== 'function') throw new Error('Game module missing init');
-    currentGameCleanup = await mod.init({ canvas, sdk, audioManager, exit: () => backBtn.click() });
-  } catch (e) {
-    console.error('Failed to load game', gameMeta.id, e);
-    const p = document.createElement('p');
-    p.textContent = `Erro ao carregar o jogo ${gameMeta.id}.`;
-    gameContainer.appendChild(p);
-  }
+  });
 }
 
 document.addEventListener('DOMContentLoaded', init);
