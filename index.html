@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Retro Arcade Hub</title>
+  <!-- Google Fonts: Pixel and Sans for titles and body text -->
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <!-- Boxicons for simple icons (MIT Licensed) -->
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+  <!-- Main styles -->
+  <link rel="stylesheet" href="./styles/main.css">
+</head>
+<body>
+  <header class="site-header" role="banner">
+    <h1 class="logo" tabindex="0">Retro Arcade Hub</h1>
+    <nav class="utilities" aria-label="Utilidades">
+      <button id="themeToggle" class="btn-icon" aria-label="Alternar tema">
+        <i class='bx bx-sun'></i>
+      </button>
+      <button id="crtToggle" class="btn-icon" aria-label="Alternar efeito CRT">
+        <i class='bx bx-tv'></i>
+      </button>
+      <button id="langToggle" class="btn-icon" aria-label="Alternar idioma">
+        <span>PT</span>
+      </button>
+      <label for="volumeSlider" class="sr-only">Volume global</label>
+      <input type="range" id="volumeSlider" min="0" max="1" step="0.05" value="1" aria-label="Volume global" />
+    </nav>
+  </header>
+  <main id="content" role="main">
+    <section id="game-list" class="game-list" aria-label="Lista de jogos">
+      <!-- Os cards dos jogos serão gerados dinamicamente pelo main.js -->
+    </section>
+    <section id="game-container" class="game-container" aria-label="Área de jogo">
+      <!-- O jogo selecionado será carregado aqui -->
+    </section>
+  </main>
+  <footer class="site-footer">
+    <p>&copy; <span id="currentYear"></span> Retro Arcade Hub</p>
+  </footer>
+
+  <!-- Carrega o aplicativo principal -->
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
